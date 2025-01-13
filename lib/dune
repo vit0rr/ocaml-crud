@@ -1,2 +1,4 @@
 (library
- (name ocaml_crud))
+ (name ocaml_crud)
+ (libraries caqti caqti-lwt caqti-lwt.unix caqti-driver-postgresql yojson uri dotenv))
+ 
