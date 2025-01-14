@@ -16,8 +16,22 @@ let create_user_query =
   (Caqti_type.(t2 string string) ->! Caqti_type.string)
     {| INSERT INTO users (name, email) VALUES (?, ?) RETURNING id|}
 
+let get_user_by_id_query =
+  let open Caqti_request.Infix in
+  (Caqti_type.string ->! Caqti_type.(t3 string string string))
+    {| SELECT id, name, email FROM users WHERE id = ? |}
+
 let create_user name email : (string, [> Caqti_error.t ]) result Lwt.t =
   Caqti_lwt_unix.Pool.use
     (fun (module Db : Caqti_lwt.CONNECTION) ->
       Db.find create_user_query (name, email))
+    pool
+
+let get_user_by_id id : (user, [> Caqti_error.t ]) result Lwt.t =
+  Caqti_lwt_unix.Pool.use
+    (fun (module Db : Caqti_lwt.CONNECTION) ->
+      let%lwt result = Db.find get_user_by_id_query id in
+      match result with
+      | Ok (id, name, email) -> Lwt.return_ok { id; name; email }
+      | Error _ as err -> Lwt.return err)
     pool
