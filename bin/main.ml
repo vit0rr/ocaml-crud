@@ -69,4 +69,14 @@ let () =
                    (Dream.response ~status:`Internal_Server_Error
                       (Printf.sprintf "Error updating user: %s"
                          (Caqti_error.show err))));
+         delete "/users/:id" (fun request ->
+             let id = param request "id" in
+             let%lwt delete_result = User.delete_user id in
+             match delete_result with
+             | Ok () -> Dream.json {|{"message": "User deleted"}|}
+             | Error err ->
+                 Lwt.return
+                   (Dream.response ~status:`Internal_Server_Error
+                      (Printf.sprintf "Error deleting user: %s"
+                         (Caqti_error.show err))));
        ]

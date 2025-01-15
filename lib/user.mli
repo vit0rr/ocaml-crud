@@ -25,3 +25,11 @@ val get_user_by_id : string -> (user, [> Caqti_error.t ]) result Lwt.t
     @return A promise containing either the user's ID or an error
 *)
 val edit_user : user -> (string, [> Caqti_error.t ]) result Lwt.t
+
+(** [delete_user id] deletes a user by their ID.
+    Returns an empty result if successful, or an error if the operation fails.
+
+    @param id The ID of the user to delete
+    @return A promise containing either an empty result or an error
+*)
+val delete_user : string -> (unit, [> Caqti_error.t ]) result Lwt.t
