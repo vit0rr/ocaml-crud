@@ -17,3 +17,11 @@ val create_user : string -> string -> (string, [> Caqti_error.t ]) result Lwt.t
     @return A promise containing either the user or an error
 *)
 val get_user_by_id : string -> (user, [> Caqti_error.t ]) result Lwt.t
+
+(** [edit_user user] edits a user with the given user object.
+    Returns the user's ID if successful, or an error if the operation fails.
+
+    @param user The user object to edit
+    @return A promise containing either the user's ID or an error
+*)
+val edit_user : user -> (string, [> Caqti_error.t ]) result Lwt.t
