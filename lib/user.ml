@@ -26,6 +26,10 @@ let edit_user_query =
   (Caqti_type.(t3 string string string) ->! Caqti_type.string)
     {| UPDATE users SET name = ?, email = ? WHERE id = ? RETURNING id |}
 
+let delete_user_query =
+  let open Caqti_request.Infix in
+  (Caqti_type.string ->. Caqti_type.unit) {| DELETE FROM users WHERE id = ? |}
+
 let create_user name email : (string, [> Caqti_error.t ]) result Lwt.t =
   Caqti_lwt_unix.Pool.use
     (fun (module Db : Caqti_lwt.CONNECTION) ->
@@ -45,4 +49,9 @@ let edit_user user : (string, [> Caqti_error.t ]) result Lwt.t =
   Caqti_lwt_unix.Pool.use
     (fun (module Db : Caqti_lwt.CONNECTION) ->
       Db.find edit_user_query (user.name, user.email, user.id))
+    pool
+
+let delete_user id : (unit, [> Caqti_error.t ]) result Lwt.t =
+  Caqti_lwt_unix.Pool.use
+    (fun (module Db : Caqti_lwt.CONNECTION) -> Db.exec delete_user_query id)
     pool
