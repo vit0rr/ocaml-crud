@@ -43,4 +43,30 @@ let () =
                    (Dream.response ~status:`Internal_Server_Error
                       (Printf.sprintf "Error creating user: %s"
                          (Caqti_error.show err))));
+         put "/users/:id" (fun request ->
+             let id = param request "id" in
+             let%lwt body = Dream.body request in
+             let json = Yojson.Safe.from_string body in
+             let name =
+               json
+               |> Yojson.Safe.Util.member "name"
+               |> Yojson.Safe.Util.to_string
+             in
+             let email =
+               json
+               |> Yojson.Safe.Util.member "email"
+               |> Yojson.Safe.Util.to_string
+             in
+             let user = { User.id; name; email } in
+             let%lwt edit_result = User.edit_user user in
+             match edit_result with
+             | Ok user_id ->
+                 Dream.json
+                   (Printf.sprintf {|{"id": "%s", "name": "%s", "email": "%s"}|}
+                      user_id name email)
+             | Error err ->
+                 Lwt.return
+                   (Dream.response ~status:`Internal_Server_Error
+                      (Printf.sprintf "Error updating user: %s"
+                         (Caqti_error.show err))));
        ]

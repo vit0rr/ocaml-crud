@@ -21,6 +21,11 @@ let get_user_by_id_query =
   (Caqti_type.string ->! Caqti_type.(t3 string string string))
     {| SELECT id, name, email FROM users WHERE id = ? |}
 
+let edit_user_query =
+  let open Caqti_request.Infix in
+  (Caqti_type.(t3 string string string) ->! Caqti_type.string)
+    {| UPDATE users SET name = ?, email = ? WHERE id = ? RETURNING id |}
+
 let create_user name email : (string, [> Caqti_error.t ]) result Lwt.t =
   Caqti_lwt_unix.Pool.use
     (fun (module Db : Caqti_lwt.CONNECTION) ->
@@ -34,4 +39,10 @@ let get_user_by_id id : (user, [> Caqti_error.t ]) result Lwt.t =
       match result with
       | Ok (id, name, email) -> Lwt.return_ok { id; name; email }
       | Error _ as err -> Lwt.return err)
+    pool
+
+let edit_user user : (string, [> Caqti_error.t ]) result Lwt.t =
+  Caqti_lwt_unix.Pool.use
+    (fun (module Db : Caqti_lwt.CONNECTION) ->
+      Db.find edit_user_query (user.name, user.email, user.id))
     pool
