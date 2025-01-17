@@ -3,55 +3,50 @@ type user = { id : string; name : string; email : string }
 let pool =
   Dotenv.export () |> ignore;
   let connection_uri = Uri.of_string (Sys.getenv "POSTGRES_URL") in
-  let config =
-    Caqti_connect_config.default
-    |> Caqti_connect_config.set Caqti_connect_config.tweaks_version (1, 0)
-  in
-  match Caqti_lwt_unix.connect_pool ~config connection_uri with
+  match Caqti_lwt_unix.connect_pool connection_uri with
   | Ok pool -> pool
   | Error err -> failwith (Caqti_error.show err)
 
-let create_user_query =
-  let open Caqti_request.Infix in
-  (Caqti_type.(t2 string string) ->! Caqti_type.string)
-    {| INSERT INTO users (name, email) VALUES (?, ?) RETURNING id|}
+let execute query = Caqti_lwt_unix.Pool.use query pool
 
-let get_user_by_id_query =
-  let open Caqti_request.Infix in
-  (Caqti_type.string ->! Caqti_type.(t3 string string string))
-    {| SELECT id, name, email FROM users WHERE id = ? |}
+let create_user name email =
+  execute
+  @@ [%rapper
+       get_one
+         {sql|
+        INSERT INTO users (name, email)
+        VALUES (%string{name}, %string{email})
+        RETURNING @string{id}
+        |sql}]
+       ~name ~email
 
-let edit_user_query =
-  let open Caqti_request.Infix in
-  (Caqti_type.(t3 string string string) ->! Caqti_type.string)
-    {| UPDATE users SET name = ?, email = ? WHERE id = ? RETURNING id |}
+let get_user_by_id id =
+  execute
+  @@ [%rapper
+       get_one
+         {sql|
+        SELECT @string{id}, @string{name}, @string{email} 
+        FROM users WHERE id = %string{id}
+      |sql}
+         record_out]
+       ~id
 
-let delete_user_query =
-  let open Caqti_request.Infix in
-  (Caqti_type.string ->. Caqti_type.unit) {| DELETE FROM users WHERE id = ? |}
+let edit_user user =
+  execute
+  @@ [%rapper
+       get_one
+         {sql|
+        UPDATE users SET name = %string{name}, email = %string{email} WHERE id = %string{id}
+        RETURNING @string{id}
+      |sql}]
+       ~name:user.name ~email:user.email ~id:user.id
 
-let create_user name email : (string, [> Caqti_error.t ]) result Lwt.t =
-  Caqti_lwt_unix.Pool.use
-    (fun (module Db : Caqti_lwt.CONNECTION) ->
-      Db.find create_user_query (name, email))
-    pool
-
-let get_user_by_id id : (user, [> Caqti_error.t ]) result Lwt.t =
-  Caqti_lwt_unix.Pool.use
-    (fun (module Db : Caqti_lwt.CONNECTION) ->
-      let%lwt result = Db.find get_user_by_id_query id in
-      match result with
-      | Ok (id, name, email) -> Lwt.return_ok { id; name; email }
-      | Error _ as err -> Lwt.return err)
-    pool
-
-let edit_user user : (string, [> Caqti_error.t ]) result Lwt.t =
-  Caqti_lwt_unix.Pool.use
-    (fun (module Db : Caqti_lwt.CONNECTION) ->
-      Db.find edit_user_query (user.name, user.email, user.id))
-    pool
-
-let delete_user id : (unit, [> Caqti_error.t ]) result Lwt.t =
-  Caqti_lwt_unix.Pool.use
-    (fun (module Db : Caqti_lwt.CONNECTION) -> Db.exec delete_user_query id)
-    pool
+let delete_user id =
+  execute
+  @@ [%rapper
+       get_one
+         {sql|
+        DELETE FROM users WHERE id = %string{id}
+        RETURNING @string{id}
+      |sql}]
+       ~id
