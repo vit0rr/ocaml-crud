@@ -73,7 +73,10 @@ let () =
              let id = param request "id" in
              let%lwt delete_result = User.delete_user id in
              match delete_result with
-             | Ok () -> Dream.json {|{"message": "User deleted"}|}
+             | Ok id ->
+                 Dream.json
+                   (Printf.sprintf {|{"id": "%s", "message": "User deleted"}|}
+                      id)
              | Error err ->
                  Lwt.return
                    (Dream.response ~status:`Internal_Server_Error
