@@ -2,4 +2,3 @@
  (name ocaml_crud)
  (preprocess (pps lwt_ppx ppx_rapper))
  (libraries caqti caqti-lwt caqti-lwt.unix caqti-driver-postgresql yojson uri dotenv ppx_rapper_lwt))
- 
