@@ -11,9 +11,19 @@ let () =
              let%lwt user_result = User.get_user_by_id id in
              match user_result with
              | Ok user ->
-                 Dream.json
-                   (Printf.sprintf {|{"id": "%s", "name": "%s", "email": "%s"}|}
-                      user.id user.name user.email)
+                 Lwt.return
+                   (* TODO: add middleware to 
+                   add headers to all responses *)
+                   (Dream.response
+                      ~headers:
+                        [
+                          ("Access-Control-Allow-Origin", "*");
+                          ("Content-Type", "application/json");
+                        ]
+                      ~code:200
+                      (Printf.sprintf
+                         {|{"id": "%s", "name": "%s", "email": "%s"}|} user.id
+                         user.name user.email))
              | Error err ->
                  Lwt.return
                    (Dream.response ~status:`Internal_Server_Error
