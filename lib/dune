@@ -1,3 +1,9 @@
+(dirs (:standard \ front))
+
+(alias 
+(name ocaml_crud)
+)
+
 (library
  (name ocaml_crud)
  (preprocess (pps lwt_ppx ppx_rapper))
