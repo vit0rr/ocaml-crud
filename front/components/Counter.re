@@ -19,23 +19,20 @@ let make = () => {
       |> then_(json =>
            switch (Js.Json.decodeObject(json)) {
            | Some(obj) =>
-             let getId =
-               Js.Dict.get(obj, "id")
-               |> Belt.Option.flatMap(_, Js.Json.decodeString)
-               |> Belt.Option.getWithDefault(_, "");
-             let getName =
-               Js.Dict.get(obj, "name")
-               |> Belt.Option.flatMap(_, Js.Json.decodeString)
-               |> Belt.Option.getWithDefault(_, "");
-             let getEmail =
-               Js.Dict.get(obj, "email")
-               |> Belt.Option.flatMap(_, Js.Json.decodeString)
-               |> Belt.Option.getWithDefault(_, "");
              resolve({
-               id: getId,
-               name: getName,
-               email: getEmail,
-             });
+               id:
+                 Js.Dict.get(obj, "id")
+                 |> Belt.Option.flatMap(_, Js.Json.decodeString)
+                 |> Belt.Option.getWithDefault(_, ""),
+               name:
+                 Js.Dict.get(obj, "name")
+                 |> Belt.Option.flatMap(_, Js.Json.decodeString)
+                 |> Belt.Option.getWithDefault(_, ""),
+               email:
+                 Js.Dict.get(obj, "email")
+                 |> Belt.Option.flatMap(_, Js.Json.decodeString)
+                 |> Belt.Option.getWithDefault(_, ""),
+             })
            | None =>
              resolve({
                id: "",
