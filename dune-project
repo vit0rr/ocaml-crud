@@ -19,7 +19,9 @@
  (name ocaml_crud)
  (synopsis "A short synopsis")
  (description "A longer description")
- (depends ocaml)
+ (depends
+  (ocaml ( >= 5.1.1))
+  )
  (tags
   ("add topics" "to describe" your project)))
 

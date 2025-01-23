@@ -72,3 +72,7 @@ opam pin ppx_rapper git+https://github.com/roddyyaga/ppx_rapper.git
 ```
 
 And I'm open to issues! Feel free to open an issue if you have any questions or suggestions.
+
+# Cool commands
+- dune exec ocaml_crud -w
+- dune build @ocaml_crud -w

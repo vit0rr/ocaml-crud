@@ -1,4 +1,25 @@
-(executable
- (public_name front)
- (name main)
- )
+(dirs :standard \ node_modules)
+
+(melange.emit
+ ; The `target` field is used by Dune to put all JavaScript artifacts in a
+ ; specific folder inside `_build/default`
+ (target output)
+ ; Here's the list of dependencies of the stanza. In this case (being
+ ; `melange.emit`), Dune will look into those dependencies and generate rules
+ ; with JavaScript targets for the modules in those libraries as well.
+ ; Caveat: the libraries need to be specified with `(modes melange)`.
+ (libraries reason-react)
+ ; The `preprocess` field lists preprocessors which transform code before it is
+ ; compiled. melange.ppx allows to use Melange attributes [@mel. ...]
+ ; (https://melange.re/v2.0.0/communicate-with-javascript/#attributes)
+ ; reason-react-ppx allows to use JSX for ReasonReact components by using the
+ ; [@JSX] attributes from Reason: https://reasonml.github.io/docs/en/jsx
+ (preprocess
+  (pps melange.ppx reason-react-ppx))
+ ; module_systems lets you specify commonjs (the default) or es6
+ (module_systems es6))
+
+; (executable
+;  (public_name front)
+;  (name main)
+;  )
