@@ -1,6 +1,6 @@
 module App = {
   [@react.component]
-  let make = () => <Counter />;
+  let make = () => <Login />;
 };
 
 let node = ReactDOM.querySelector("#root");
