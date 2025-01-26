@@ -42,7 +42,12 @@ let () =
                |> Yojson.Safe.Util.member "email"
                |> Yojson.Safe.Util.to_string
              in
-             let%lwt user_result = User.create_user name email in
+             let password =
+               json
+               |> Yojson.Safe.Util.member "password"
+               |> Yojson.Safe.Util.to_string
+             in
+             let%lwt user_result = User.create_user name email password in
              match user_result with
              | Ok user_id ->
                  Dream.json

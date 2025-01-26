@@ -1,2 +1,5 @@
 (test
- (name test_ocaml_crud))
+ (name test_ocaml_crud)
+ (libraries 
+  ocaml_crud 
+  alcotest))
