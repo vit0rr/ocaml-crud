@@ -6,9 +6,14 @@ type user = {id: string; name: string; email: string}
 
     @param name The user's name
     @param email The user's email
+    @param password The user's password
     @return A promise containing either the new user's ID or an error
 *)
-val create_user : string -> string -> ( string, [> Caqti_error.t ] ) result Lwt.t
+val create_user : string -> string -> string -> ( string, [> Caqti_error.t ] ) result Lwt.t
+    
+val generate_token: user -> (Jose.Jwt.t, string) result
+
+val verify_token: string -> (string, string) result
 
 (** [get_user_by_id id] retrieves a user by their ID.
     Returns the user if found, or an error if the operation fails.

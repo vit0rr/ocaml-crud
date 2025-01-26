@@ -1,5 +1,5 @@
 (executable
- (public_name ocaml_crud)
  (name main)
-  (preprocess (pps lwt_ppx))
+ (public_name ocaml_crud)
+ (preprocess (pps lwt_ppx))
  (libraries ocaml_crud dream caqti caqti-lwt.unix caqti-driver-postgresql caqti-lwt dotenv))

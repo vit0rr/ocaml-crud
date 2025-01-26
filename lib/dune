@@ -1,10 +1,24 @@
 (dirs (:standard \ front))
 
-(alias 
-(name ocaml_crud)
-)
-
 (library
  (name ocaml_crud)
+ (public_name ocaml_crud)
  (preprocess (pps lwt_ppx ppx_rapper))
- (libraries caqti caqti-lwt caqti-lwt.unix caqti-driver-postgresql yojson uri dotenv ppx_rapper_lwt))
+ (libraries 
+   caqti
+   caqti-lwt
+   caqti-lwt.unix
+   caqti-driver-postgresql
+   yojson
+   uri
+   dotenv
+   ppx_rapper_lwt
+   safepass
+   jose
+   ptime
+   ptime.clock))
+
+(alias
+ (name ocaml_crud)
+ (deps
+  (alias_rec all)))
