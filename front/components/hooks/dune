@@ -1,0 +1,7 @@
+(library
+ (name hooks)
+ (libraries reason-react melange-fetch melange-json melange.belt)
+  (preprocess
+  (pps melange.ppx reason-react-ppx))
+ (modes melange)
+ )

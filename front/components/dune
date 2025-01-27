@@ -1,6 +1,6 @@
 (library
- (name login)
- (libraries reason-react melange-fetch melange-json melange.belt)
+ (name components)
+ (libraries reason-react melange-fetch melange-json melange.belt hooks)
   (preprocess
   (pps melange.ppx reason-react-ppx))
  (modes melange)

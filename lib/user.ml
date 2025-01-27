@@ -1,4 +1,5 @@
-type user = { id : string; name : string; email : string }
+type t = { id : string; email : string }
+type credentials = { id : string; email : string; password : string }
 
 let pool =
   lazy
@@ -13,7 +14,7 @@ let execute query = Caqti_lwt_unix.Pool.use query (Lazy.force pool)
 let get_jwt_secret () =
   try Sys.getenv "JWT_SECRET" with Not_found -> "no-env-bro"
 
-let generate_token user =
+let generate_token (user : t) =
   let jwt_secret = get_jwt_secret () in
   let key = Jose.Jwk.make_oct jwt_secret in
   let header = Jose.Header.make_header ~typ:"JWT" ~alg:`HS256 key in
@@ -50,38 +51,18 @@ let verify_token token =
       with _ -> Error "Invalid token payload")
   | Error _ -> Error "Invalid token"
 
-let create_user name email password =
+let create_user email password =
   let hashed_password = Bcrypt.hash password |> Bcrypt.string_of_hash in
   execute
   @@ [%rapper
        get_one
          {sql|
-        INSERT INTO users (name, email, password)
-        VALUES (%string{name}, %string{email}, %string{password})
-        RETURNING @string{id}
-        |sql}]
-       ~name ~email ~password:hashed_password
-
-let get_user_by_id id =
-  execute
-  @@ [%rapper
-       get_one
-         {sql|
-        SELECT @string{id}, @string{name}, @string{email} 
-        FROM users WHERE id = %string{id}
-      |sql}
+        INSERT INTO users (email, password)
+        VALUES (%string{email}, %string{password})
+        RETURNING @string{id}, @string{email}
+        |sql}
          record_out]
-       ~id
-
-let edit_user user =
-  execute
-  @@ [%rapper
-       get_one
-         {sql|
-        UPDATE users SET name = %string{name}, email = %string{email} WHERE id = %string{id}
-        RETURNING @string{id}
-      |sql}]
-       ~name:user.name ~email:user.email ~id:user.id
+       ~email ~password:hashed_password
 
 let delete_user id =
   execute
@@ -92,3 +73,30 @@ let delete_user id =
         RETURNING @string{id}
       |sql}]
        ~id
+
+let get_user_by_email email =
+  execute
+  @@ [%rapper
+       get_one
+         {sql|
+        SELECT @string{id}, @string{email}, @string{password}
+        FROM users WHERE email = %string{email}
+      |sql}
+         record_out]
+       ~email
+
+let login email password =
+  match%lwt get_user_by_email email with
+  | Error _ -> Lwt.return (Error "Invalid email or password")
+  | Ok user_with_password ->
+      if
+        Bcrypt.verify password
+          (Bcrypt.hash_of_string user_with_password.password)
+      then
+        let user =
+          { id = user_with_password.id; email = user_with_password.email }
+        in
+        match generate_token user with
+        | Ok token -> Lwt.return (Ok (user, token))
+        | Error err -> Lwt.return (Error err)
+      else Lwt.return (Error "Invalid email or password")
