@@ -1,5 +1,5 @@
 {
-    "files.exclude": {
-        "**/_opam/**": true
-    }
+  "files.exclude": {
+    "**/_opam/**": true
+  }
 }

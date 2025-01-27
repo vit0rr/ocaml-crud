@@ -1,6 +1,6 @@
 # url: postgres://admin:password@localhost:5432/ocaml_crud
 
-version: '3.8'
+version: "3.8"
 
 services:
   db:
