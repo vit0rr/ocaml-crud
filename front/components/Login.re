@@ -1,18 +1,22 @@
+open Hooks.UseValidateForm;
+
 [@react.component]
-let make = () => {
-  let (isLogin, setIsLogin) = React.useState(() => true);
-  let (email, setEmail) = React.useState(() => "");
-  let (password, setPassword) = React.useState(() => "");
-  let (confirmPassword, _) = React.useState(() => "");
-
-  let getValue = (e: React.Event.Form.t) =>
-    React.Event.Form.target(e)##value;
-
-  let onSubmit = (e: React.Event.Mouse.t) => {
-    React.Event.Mouse.preventDefault(e);
-    Js.Console.log(email);
-    Js.Console.log(password);
-  };
+let make = (~setToken) => {
+  let (
+    email,
+    password,
+    confirmPassword,
+    isLogin,
+    setEmail,
+    setPassword,
+    setConfirmPassword,
+    setIsLogin,
+    error,
+    isLoading,
+    getValue,
+    onSubmit,
+  ) =
+    useLoginForm(~setToken);
 
   <div
     className="h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
@@ -21,7 +25,15 @@ let make = () => {
       <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
         {React.string(isLogin ? "Login" : "Register")}
       </h1>
-      <form className="w-full space-y-4">
+      {switch (error) {
+       | Some(msg) =>
+         <div
+           className="w-full p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+           {React.string(msg)}
+         </div>
+       | None => React.null
+       }}
+      <form className="w-full space-y-4" onSubmit>
         <div>
           <label
             className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -57,21 +69,19 @@ let make = () => {
                <input
                  type_="password"
                  value=confirmPassword
-                 onChange={e => Js.log(e)}
+                 onChange={e => setConfirmPassword(getValue(e))}
                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                  required=true
                />
              </div>
            : React.null}
-        /*
-                 For some reason, the "type_" looks not working. It do not trigger the onSubmit function.
-                 So, I use onClick by now to trigger the onSubmit function.
-         */
         <button
-          onClick={evt => onSubmit(evt)}
           type_="submit"
-          className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all duration-200">
-          {React.string(isLogin ? "Login" : "Register")}
+          disabled=isLoading
+          className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+          {React.string(
+             isLoading ? "Loading..." : isLogin ? "Login" : "Register",
+           )}
         </button>
       </form>
       <button

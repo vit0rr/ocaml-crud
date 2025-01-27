@@ -1,6 +1,6 @@
-(dirs :standard \ front)
+; (dirs :standard \ front)
 
- (alias
-  (name ocaml_crud)
-  (deps
-   (alias_rec all)))
+;  (alias
+;   (name ocaml_crud)
+;   (deps
+;    (alias_rec all)))
