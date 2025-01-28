@@ -56,7 +56,7 @@ module App = {
         }
       | ["todo"] =>
         switch (token) {
-        | Some(_) => <Todo setToken />
+        | Some(token) => <Todo setToken token />
         | None =>
           ReasonReactRouter.push("/");
           <div> {React.string("Redirecting...")} </div>;
