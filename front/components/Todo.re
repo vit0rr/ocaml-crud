@@ -1,83 +1,21 @@
-type todo = {
-  id: int,
-  text: string,
-  isEditing: bool,
-};
+open Hooks.UseTodo;
 
 [@react.component]
-let make = (~setToken) => {
-  let (todos, setTodos) = React.useState(() => []);
-  let (newTodo, setNewTodo) = React.useState(() => "");
-
-  let logout = () => {
-    Dom.Storage.localStorage |> Dom.Storage.removeItem("token");
-    setToken(_ => None);
-    ReasonReactRouter.push("/");
-  };
-
-  let addTodo = event => {
-    React.Event.Form.preventDefault(event);
-    if (String.trim(newTodo) != "") {
-      setTodos(prev =>
-        [
-          {
-            id: Js.Date.now() |> int_of_float,
-            text: newTodo,
-            isEditing: false,
-          },
-          ...prev,
-        ]
-      );
-      setNewTodo(_ => "");
-    };
-  };
-
-  let deleteTodo = id => {
-    setTodos(prev => prev |> List.filter(todo => todo.id != id));
-  };
-
-  let toggleEdit = id => {
-    setTodos(prev =>
-      prev
-      |> List.map(todo =>
-           todo.id == id
-             ? {
-               ...todo,
-               isEditing: !todo.isEditing,
-             }
-             : todo
-         )
-    );
-  };
-
-  let updateTodo = (id, newText) => {
-    setTodos(prev =>
-      prev
-      |> List.map(todo =>
-           todo.id == id
-             ? {
-               ...todo,
-               text: newText,
-               isEditing: false,
-             }
-             : todo
-         )
-    );
-  };
-
-  let handleEditChange = (id, newText) => {
-    setTodos(prev =>
-      prev
-      |> List.map(todo =>
-           todo.id == id
-             ? {
-               ...todo,
-               text: newText,
-             }
-             : todo
-         )
-    );
-  };
+let make = (~setToken, ~token) => {
+  let (
+    todos,
+    newTodo,
+    setNewTodo,
+    error,
+    isLoading,
+    logout,
+    addTodo,
+    deleteTodo,
+    toggleEdit,
+    updateTodo,
+    handleEditChange,
+  ) =
+    useTodo(~setToken, ~token);
 
   <div
     className="min-h-screen grid place-items-center bg-background/50 dark:bg-background/80 relative overflow-hidden">
@@ -96,12 +34,21 @@ let make = (~setToken) => {
           {React.string("Todo List")}
         </h1>
       </div>
+      {switch (error) {
+       | Some(msg) =>
+         <div
+           className="p-3 text-sm bg-destructive/15 text-destructive rounded-md border border-destructive/20">
+           {React.string(msg)}
+         </div>
+       | None => React.null
+       }}
       <form onSubmit=addTodo className="space-y-4">
         <div className="flex gap-2">
           <input
             type_="text"
             value=newTodo
             onChange={e => setNewTodo(React.Event.Form.target(e)##value)}
+            disabled=isLoading
             className="flex-1 h-10 rounded-md shadow-[0_2px_4px_0px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_4px_0px_rgba(0,0,0,0.15)]
             bg-white dark:bg-gray-950 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium
             placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
@@ -110,10 +57,11 @@ let make = (~setToken) => {
           />
           <button
             type_="submit"
+            disabled=isLoading
             className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90 h-10
              px-4 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
              focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none shadow-sm active:scale-[0.98]">
-            {React.string("Add")}
+            {React.string(isLoading ? "Adding..." : "Add")}
           </button>
         </div>
       </form>
@@ -121,7 +69,7 @@ let make = (~setToken) => {
         {todos
          |> List.map(todo =>
               <div
-                key={string_of_int(todo.id)}
+                key={todo.id}
                 className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
                 {todo.isEditing
                    ? <input

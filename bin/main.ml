@@ -51,7 +51,12 @@ let () =
   run @@ cors_middleware
   @@ router
        [
-         get "/" (fun _ -> html "Hello, World");
+         get "/verify-token"
+           (protect_route (fun request ->
+                match verify_auth_token request with
+                | Ok user_id ->
+                    Dream.json (Printf.sprintf {|{"user_id": "%s"}|} user_id)
+                | Error _ -> Dream.json {|{"error": "Invalid token"}|}));
          post "/users" (fun request ->
              let%lwt body = Dream.body request in
              let json = Yojson.Safe.from_string body in
@@ -152,10 +157,31 @@ let () =
                  Lwt.return
                    (Dream.response ~status:`Bad_Request
                       (Printf.sprintf {|{"error": "Invalid JSON: %s"}|} msg)));
-         get "/verify-token"
+         post "/tasks"
            (protect_route (fun request ->
+                let%lwt body = Dream.body request in
+                let json = Yojson.Safe.from_string body in
+                let task =
+                  json
+                  |> Yojson.Safe.Util.member "task"
+                  |> Yojson.Safe.Util.to_string
+                in
                 match verify_auth_token request with
-                | Ok user_id ->
-                    Dream.json (Printf.sprintf {|{"user_id": "%s"}|} user_id)
-                | Error _ -> Dream.json {|{"error": "Invalid token"}|}));
+                | Ok user_id -> (
+                    let%lwt task_result = Tasks.create_task task user_id in
+                    match task_result with
+                    | Ok task ->
+                        Dream.json
+                          (Printf.sprintf
+                             {|{"id": "%s", "task": "%s", "user_id": "%s"}|}
+                             task.id task.task task.user_id)
+                    | Error err ->
+                        Lwt.return
+                          (Dream.response ~status:`Internal_Server_Error
+                             (Printf.sprintf "Error creating task: %s"
+                                (Caqti_error.show err))))
+                | Error err ->
+                    Lwt.return
+                      (Dream.response ~status:`Unauthorized
+                         (Printf.sprintf {|{"error": "%s"}|} err))));
        ]
