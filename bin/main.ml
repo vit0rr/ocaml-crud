@@ -1,6 +1,5 @@
 open Dream
 open Ocaml_crud
-open Tasks
 
 let verify_auth_token request =
   match Dream.header request "Authorization" with
@@ -194,7 +193,7 @@ let () =
                     | Ok tasks ->
                         let tasks_json =
                           tasks
-                          |> List.map (fun task ->
+                          |> List.map (fun (task : Tasks.t) ->
                                  Printf.sprintf
                                    {|{"id": "%s", "task": "%s", "user_id": "%s"}|}
                                    task.id task.task task.user_id)
