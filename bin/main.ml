@@ -1,5 +1,6 @@
 open Dream
 open Ocaml_crud
+open Tasks
 
 let verify_auth_token request =
   match Dream.header request "Authorization" with
@@ -179,6 +180,31 @@ let () =
                         Lwt.return
                           (Dream.response ~status:`Internal_Server_Error
                              (Printf.sprintf "Error creating task: %s"
+                                (Caqti_error.show err))))
+                | Error err ->
+                    Lwt.return
+                      (Dream.response ~status:`Unauthorized
+                         (Printf.sprintf {|{"error": "%s"}|} err))));
+         get "/tasks"
+           (protect_route (fun request ->
+                match verify_auth_token request with
+                | Ok user_id -> (
+                    let%lwt tasks_result = Tasks.get_tasks user_id in
+                    match tasks_result with
+                    | Ok tasks ->
+                        let tasks_json =
+                          tasks
+                          |> List.map (fun task ->
+                                 Printf.sprintf
+                                   {|{"id": "%s", "task": "%s", "user_id": "%s"}|}
+                                   task.id task.task task.user_id)
+                          |> String.concat ", "
+                        in
+                        Dream.json (Printf.sprintf "[%s]" tasks_json)
+                    | Error err ->
+                        Lwt.return
+                          (Dream.response ~status:`Internal_Server_Error
+                             (Printf.sprintf "Error fetching tasks: %s"
                                 (Caqti_error.show err))))
                 | Error err ->
                     Lwt.return
