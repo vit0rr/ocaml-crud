@@ -141,6 +141,75 @@ let useTodo = (~setToken, ~token) => {
     );
   };
 
+  React.useEffect0(() => {
+    Fetch.fetchWithInit(
+      "http://localhost:8080/tasks",
+      Fetch.RequestInit.make(
+        ~method_=Get,
+        ~headers=
+          Fetch.HeadersInit.make({"Authorization": "Bearer " ++ token}),
+        (),
+      ),
+    )
+    |> Js.Promise.then_(Fetch.Response.json)
+    |> Js.Promise.then_(json => {
+         switch (Js.Json.decodeArray(json)) {
+         | Some(array) =>
+           let todos =
+             array
+             |> Array.map(item =>
+                  switch (Js.Json.decodeObject(item)) {
+                  | Some(obj) =>
+                    switch (
+                      Js.Dict.get(obj, "id"),
+                      Js.Dict.get(obj, "task"),
+                    ) {
+                    | (Some(idJson), Some(taskJson)) =>
+                      switch (
+                        Js.Json.decodeString(idJson),
+                        Js.Json.decodeString(taskJson),
+                      ) {
+                      | (Some(id), Some(task)) =>
+                        Some({
+                          id,
+                          text: task,
+                          isEditing: false,
+                        })
+                      | _ => None
+                      }
+                    | _ => None
+                    }
+                  | None => None
+                  }
+                )
+             |> Array.to_list
+             |> List.filter(item =>
+                  switch (item) {
+                  | Some(_) => true
+                  | None => false
+                  }
+                )
+             |> List.map(item =>
+                  switch (item) {
+                  | Some(todo) => todo
+                  | None => assert(false)
+                  }
+                );
+           setTodos(_ => todos);
+         | None => setError(_ => Some("Failed to fetch todos"))
+         };
+         Js.Promise.resolve();
+       })
+    |> Js.Promise.catch(err => {
+         setError(_ => Some("Failed to fetch todos"));
+         Js.Console.error(err);
+         Js.Promise.resolve();
+       })
+    |> ignore;
+
+    None;
+  });
+
   (
     // States
     todos,
