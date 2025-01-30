@@ -1,5 +1,11 @@
 # OCaml CRUD
 
+
+
+https://github.com/user-attachments/assets/81fd43af-36fb-4ebf-bfa3-4ffee1a24581
+
+
+
 This is a simple CRUD application built with OCaml and PostgreSQL.
 
 - GET `/users/:id` - Get a user by their ID
