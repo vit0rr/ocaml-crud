@@ -1,95 +1,56 @@
-# OCaml CRUD
+# OCaml CRUD Todo App
 
+A full-stack todo application built with OCaml (Dream) backend and ReasonReact frontend, featuring JWT authentication and PostgreSQL database.
 
+![OCaml CRUD](https://github.com/user-attachments/assets/81fd43af-36fb-4ebf-bfa3-4ffee1a24581)
 
-https://github.com/user-attachments/assets/81fd43af-36fb-4ebf-bfa3-4ffee1a24581
+## Features
 
+- JWT Authentication
+- Tasks CRUD operations
+- RESTful API
+- Protected routes
+- Type-safe database queries with Rapper
 
+## Tech Stack
 
-This is a simple CRUD application built with OCaml and PostgreSQL.
+### Backend
+- OCaml
+- Dream (Web framework)
+- Caqti (Database interface)
+- PostgreSQL
+- JWT (JSON Web Tokens)
+- Bcrypt (Password hashing)
 
-- GET `/users/:id` - Get a user by their ID
+### Frontend
+- Melange (ReasonML)
+- TailwindCSS
 
-  Response:
+## API Routes
 
-  ```JSON
-  {
-      "id": "c8d31481-fa56-4513-a5a4-14471646bb3b",
-      "name": "Vitor S. Almeida",
-      "email": "vitor@example.com"
-  }
-  ```
+| Method | Path | Description | Auth Required |
+|--------|------|-------------|---------------|
+| POST | `/users` | Create a new user | No |
+| POST | `/login` | Login a user | No |
+| GET | `/verify-token` | Verify JWT token | Yes |
+| POST | `/tasks` | Create a new task | Yes |
+| GET | `/tasks` | Get all tasks for user | Yes |
+| DELETE | `/tasks/:id` | Delete a task | Yes |
+| PUT | `/tasks/:id` | Update a task | Yes |
 
-- POST `/users` - Create a new user
+## Getting Started
 
-  Body:
+### Prerequisites
 
-  ```JSON
-  {
-      "name": "Vitor",
-      "email": "vitor-email@example.com"
-  }
-  ```
+- OCaml
+- Node.js
+- PostgreSQL
+- OPAM
 
-  Response:
+### Environment Variables
 
-  ```JSON
-  {
-      "id": "3adb282e-80e6-442d-93b6-9b1183e08274",
-      "name": "Vitor",
-      "email": "vitor-email@example.com"
-  }
-  ```
-
-- PUT `/users/:id` - Update a user
-
-  Body:
-
-  ```JSON
-  {
-      "name": "Vitor New Name",
-      "email": "vitor-new-email@example.com"
-  }
-  ```
-
-  Response:
-
-  ```JSON
-  {
-      "id": "3adb282e-80e6-442d-93b6-9b1183e08274",
-      "name": "Vitor New Name",
-      "email": "vitor-new-email@example.com"
-  }
-  ```
-
-- DELETE `/users/:id` - Delete a user
-
-  Response:
-
-  ```JSON
-  {
-      "id": "3adb282e-80e6-442d-93b6-9b1183e08274",
-      "message": "User deleted"
-  }
-  ```
-
-# How to run
-
-```bash
-docker compose up -d
-dune build
-dune exec ocaml_crud -w
+Create a `.env` file in the root directory:
 ```
-
-You may have issues with the ppx_rapper_lwt. If you do, try to pin the dev. version:
-
-```bash
-opam pin ppx_rapper git+https://github.com/roddyyaga/ppx_rapper.git
+POSTGRES_URL=postgresql://admin:password@localhost:5432/ocaml_crud
+JWT_SECRET=your_key
 ```
-
-And I'm open to issues! Feel free to open an issue if you have any questions or suggestions.
-
-# Cool commands
-
-- dune exec ocaml_crud -w
-- dune build @ocaml_crud -w
