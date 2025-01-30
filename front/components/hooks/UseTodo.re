@@ -95,7 +95,54 @@ let useTodo = (~setToken, ~token) => {
   };
 
   let deleteTodo = id => {
+    let originalTodos = todos;
     setTodos(prev => prev |> List.filter(todo => todo.id != id));
+    setError(_ => None);
+
+    Fetch.fetchWithInit(
+      "http://localhost:8080/tasks/" ++ id,
+      Fetch.RequestInit.make(
+        ~method_=Delete,
+        ~headers=
+          Fetch.HeadersInit.make({"Authorization": "Bearer " ++ token}),
+        (),
+      ),
+    )
+    |> Js.Promise.then_(response => {
+         let status = Fetch.Response.status(response);
+         if (status != 200) {
+           setTodos(_ => originalTodos);
+         };
+         Fetch.Response.json(response);
+       })
+    |> Js.Promise.then_(json => {
+         switch (Js.Json.decodeObject(json)) {
+         | Some(obj) =>
+           switch (Js.Dict.get(obj, "error")) {
+           | Some(errorJson) =>
+             switch (Js.Json.decodeString(errorJson)) {
+             | Some(errorMsg) =>
+               setError(_ => Some(errorMsg));
+               setTodos(_ => originalTodos);
+             | None =>
+               setError(_ => Some("An unexpected error occurred"));
+               setTodos(_ => originalTodos);
+             }
+           | None => ()
+           }
+         | None =>
+           setError(_ => Some("Invalid response format"));
+           setTodos(_ => originalTodos);
+         };
+         Js.Promise.resolve();
+       })
+    |> Js.Promise.catch(err => {
+         setTodos(_ => originalTodos);
+         setError(_ => Some("Failed to delete todo. Please try again."));
+         Js.Console.error(err);
+         Js.Promise.resolve();
+       })
+    |> ignore;
   };
 
   let toggleEdit = id => {
@@ -113,6 +160,7 @@ let useTodo = (~setToken, ~token) => {
   };
 
   let updateTodo = (id, newText) => {
+    let originalTodos = todos;
     setTodos(prev =>
       prev
       |> List.map(todo =>
@@ -125,6 +173,63 @@ let useTodo = (~setToken, ~token) => {
              : todo
          )
     );
+    setError(_ => None);
+
+    let payload = Js.Dict.empty();
+    Js.Dict.set(payload, "task", Js.Json.string(newText));
+
+    Fetch.fetchWithInit(
+      "http://localhost:8080/tasks/" ++ id,
+      Fetch.RequestInit.make(
+        ~method_=Put,
+        ~body=
+          payload
+          |> Js.Json.object_
+          |> Js.Json.stringify
+          |> Fetch.BodyInit.make,
+        ~headers=
+          Fetch.HeadersInit.make({
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " ++ token,
+          }),
+        (),
+      ),
+    )
+    |> Js.Promise.then_(response => {
+         let status = Fetch.Response.status(response);
+         if (status != 200) {
+           setTodos(_ => originalTodos);
+         };
+         Fetch.Response.json(response);
+       })
+    |> Js.Promise.then_(json => {
+         switch (Js.Json.decodeObject(json)) {
+         | Some(obj) =>
+           switch (Js.Dict.get(obj, "error")) {
+           | Some(errorJson) =>
+             switch (Js.Json.decodeString(errorJson)) {
+             | Some(errorMsg) =>
+               setError(_ => Some(errorMsg));
+               setTodos(_ => originalTodos);
+             | None =>
+               setError(_ => Some("An unexpected error occurred"));
+               setTodos(_ => originalTodos);
+             }
+           | None => ()
+           }
+         | None =>
+           setError(_ => Some("Invalid response format"));
+           setTodos(_ => originalTodos);
+         };
+         Js.Promise.resolve();
+       })
+    |> Js.Promise.catch(err => {
+         setTodos(_ => originalTodos);
+         setError(_ => Some("Failed to update todo. Please try again."));
+         Js.Console.error(err);
+         Js.Promise.resolve();
+       })
+    |> ignore;
   };
 
   let handleEditChange = (id, newText) => {
