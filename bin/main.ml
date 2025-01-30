@@ -13,9 +13,7 @@ let protect_route inner_handler request =
   match verify_auth_token request with
   | Ok _ -> inner_handler request
   | Error err ->
-      Lwt.return
-        (Dream.response ~status:`Unauthorized
-           (Printf.sprintf {|{"error": "%s"}|} err))
+      Dream.json ~status:`Unauthorized (Printf.sprintf {|{"error": "%s"}|} err)
 
 let cors_middleware inner_handler request =
   let cors_headers =
@@ -53,11 +51,18 @@ let () =
        [
          get "/verify-token"
            (protect_route (fun request ->
+                Printf.printf "[GET /verify-token] Request received\n%!";
                 match verify_auth_token request with
                 | Ok user_id ->
+                    Printf.printf "[GET /verify-token] Verified user_id: %s\n%!"
+                      user_id;
                     Dream.json (Printf.sprintf {|{"user_id": "%s"}|} user_id)
-                | Error _ -> Dream.json {|{"error": "Invalid token"}|}));
+                | Error err ->
+                    Printf.printf "[GET /verify-token] Error: %s\n%!" err;
+                    Dream.json ~status:`Unauthorized
+                      (Printf.sprintf {|{"error": "%s"}|} err)));
          post "/users" (fun request ->
+             Printf.printf "[POST /users] Request received\n%!";
              let%lwt body = Dream.body request in
              let json = Yojson.Safe.from_string body in
              let email =
@@ -73,12 +78,13 @@ let () =
              let%lwt user_result = User.create_user email password in
              match user_result with
              | Ok user ->
+                 Printf.printf "[POST /users] User created: %s\n%!" user.id;
                  Dream.json
                    (Printf.sprintf {|{"id": "%s", "email": "%s"}|} user.id
                       user.email)
              | Error err ->
                  let error_msg = Caqti_error.show err in
-                 Printf.printf "Debug - Full error message: %s\n%!" error_msg;
+                 Printf.printf "[POST /users] Error: %s\n%!" error_msg;
                  let status, message =
                    match error_msg with
                    | msg
@@ -89,23 +95,9 @@ let () =
                        ( `Internal_Server_Error,
                          "An error occurred while creating the user" )
                  in
-                 Lwt.return
-                   (Dream.response ~status
-                      (Printf.sprintf {|{"error": "%s"}|} message)));
-         delete "/users/:id" (fun request ->
-             let id = param request "id" in
-             let%lwt delete_result = User.delete_user id in
-             match delete_result with
-             | Ok id ->
-                 Dream.json
-                   (Printf.sprintf {|{"id": "%s", "message": "User deleted"}|}
-                      id)
-             | Error err ->
-                 Lwt.return
-                   (Dream.response ~status:`Internal_Server_Error
-                      (Printf.sprintf "Error deleting user: %s"
-                         (Caqti_error.show err))));
+                 Dream.json ~status (Printf.sprintf {|{"error": "%s"}|} message));
          post "/login" (fun request ->
+             Printf.printf "[POST /login] Request received\n%!";
              let%lwt body = Dream.body request in
              try
                let json = Yojson.Safe.from_string body in
@@ -113,11 +105,9 @@ let () =
                  match json |> Yojson.Safe.Util.member "email" with
                  | `String s -> s
                  | `Null ->
-                     Printf.printf "Email is null\n%!";
                      raise
                        (Yojson.Safe.Util.Type_error ("Email is required", json))
                  | _ ->
-                     Printf.printf "Email is invalid type\n%!";
                      raise
                        (Yojson.Safe.Util.Type_error
                           ("Email must be a string", json))
@@ -137,28 +127,27 @@ let () =
                let%lwt login_result = User.login email password in
                match login_result with
                | Ok (user, token) ->
-                   Lwt.return
-                     (Dream.response ~code:200
-                        (Printf.sprintf
-                           {|{"id": "%s", "email": "%s", "token": "%s"}|}
-                           user.id user.email (Jose.Jwt.to_string token)))
+                   Printf.printf "[POST /login] User logged in: %s\n%!" user.id;
+                   Dream.json
+                     (Printf.sprintf
+                        {|{"id": "%s", "email": "%s", "token": "%s"}|} user.id
+                        user.email (Jose.Jwt.to_string token))
                | Error err ->
-                   Lwt.return
-                     (Dream.response ~status:`Unauthorized
-                        (Printf.sprintf {|{"error": "%s"}|} err))
+                   Printf.printf "[POST /login] Error: %s\n%!" err;
+                   Dream.json ~status:`Unauthorized
+                     (Printf.sprintf {|{"error": "%s"}|} err)
              with
              | Yojson.Safe.Util.Type_error (msg, _) ->
-                 Printf.printf "Type error: %s\n%!" msg;
-                 Lwt.return
-                   (Dream.response ~status:`Bad_Request
-                      (Printf.sprintf {|{"error": "%s"}|} msg))
+                 Printf.printf "[POST /login] Type error: %s\n%!" msg;
+                 Dream.json ~status:`Bad_Request
+                   (Printf.sprintf {|{"error": "%s"}|} msg)
              | Yojson.Json_error msg ->
-                 Printf.printf "JSON parse error: %s\n%!" msg;
-                 Lwt.return
-                   (Dream.response ~status:`Bad_Request
-                      (Printf.sprintf {|{"error": "Invalid JSON: %s"}|} msg)));
+                 Printf.printf "[POST /login] JSON parse error: %s\n%!" msg;
+                 Dream.json ~status:`Bad_Request
+                   (Printf.sprintf {|{"error": "Invalid JSON: %s"}|} msg));
          post "/tasks"
            (protect_route (fun request ->
+                Printf.printf "[POST /tasks] Request received\n%!";
                 let%lwt body = Dream.body request in
                 let json = Yojson.Safe.from_string body in
                 let task =
@@ -168,29 +157,36 @@ let () =
                 in
                 match verify_auth_token request with
                 | Ok user_id -> (
+                    Printf.printf "[POST /tasks] User: %s\n%!" user_id;
                     let%lwt task_result = Tasks.create_task task user_id in
                     match task_result with
                     | Ok task ->
+                        Printf.printf "[POST /tasks] Task created: %s\n%!"
+                          task.id;
                         Dream.json
                           (Printf.sprintf
                              {|{"id": "%s", "task": "%s", "user_id": "%s"}|}
                              task.id task.task task.user_id)
                     | Error err ->
-                        Lwt.return
-                          (Dream.response ~status:`Internal_Server_Error
-                             (Printf.sprintf "Error creating task: %s"
-                                (Caqti_error.show err))))
+                        let error_msg = Caqti_error.show err in
+                        Printf.printf "[POST /tasks] Error: %s\n%!" error_msg;
+                        Dream.json ~status:`Internal_Server_Error
+                          (Printf.sprintf {|{"error": "%s"}|} error_msg))
                 | Error err ->
-                    Lwt.return
-                      (Dream.response ~status:`Unauthorized
-                         (Printf.sprintf {|{"error": "%s"}|} err))));
+                    Printf.printf "[POST /tasks] Auth error: %s\n%!" err;
+                    Dream.json ~status:`Unauthorized
+                      (Printf.sprintf {|{"error": "%s"}|} err)));
          get "/tasks"
            (protect_route (fun request ->
+                Printf.printf "[GET /tasks] Request received\n%!";
                 match verify_auth_token request with
                 | Ok user_id -> (
+                    Printf.printf "[GET /tasks] User: %s\n%!" user_id;
                     let%lwt tasks_result = Tasks.get_tasks user_id in
                     match tasks_result with
                     | Ok tasks ->
+                        Printf.printf "[GET /tasks] Retrieved %d tasks\n%!"
+                          (List.length tasks);
                         let tasks_json =
                           tasks
                           |> List.map (fun (task : Tasks.t) ->
@@ -201,12 +197,63 @@ let () =
                         in
                         Dream.json (Printf.sprintf "[%s]" tasks_json)
                     | Error err ->
-                        Lwt.return
-                          (Dream.response ~status:`Internal_Server_Error
-                             (Printf.sprintf "Error fetching tasks: %s"
-                                (Caqti_error.show err))))
+                        let error_msg = Caqti_error.show err in
+                        Printf.printf "[GET /tasks] Error: %s\n%!" error_msg;
+                        Dream.json ~status:`Internal_Server_Error
+                          (Printf.sprintf {|{"error": "%s"}|} error_msg))
                 | Error err ->
-                    Lwt.return
-                      (Dream.response ~status:`Unauthorized
-                         (Printf.sprintf {|{"error": "%s"}|} err))));
+                    Printf.printf "[GET /tasks] Auth error: %s\n%!" err;
+                    Dream.json ~status:`Unauthorized
+                      (Printf.sprintf {|{"error": "%s"}|} err)));
+         delete "/tasks/:id"
+           (protect_route (fun request ->
+                let id = param request "id" in
+                Printf.printf "[DELETE /tasks/%s] Request received\n%!" id;
+                match verify_auth_token request with
+                | Ok user_id -> (
+                    Printf.printf "[DELETE /tasks/%s] User: %s\n%!" id user_id;
+                    let%lwt delete_result = Tasks.delete_task id user_id in
+                    match delete_result with
+                    | Ok () ->
+                        Printf.printf "[DELETE /tasks/%s] Task deleted\n%!" id;
+                        Dream.json {|{"message": "Task deleted successfully"}|}
+                    | Error err ->
+                        let error_msg = Caqti_error.show err in
+                        Printf.printf "[DELETE /tasks/%s] Error: %s\n%!" id
+                          error_msg;
+                        Dream.json ~status:`Internal_Server_Error
+                          (Printf.sprintf {|{"error": "%s"}|} error_msg))
+                | Error err ->
+                    Printf.printf "[DELETE /tasks/%s] Auth error: %s\n%!" id err;
+                    Dream.json ~status:`Unauthorized
+                      (Printf.sprintf {|{"error": "%s"}|} err)));
+         put "/tasks/:id"
+           (protect_route (fun request ->
+                let id = param request "id" in
+                Printf.printf "[PUT /tasks/%s] Request received\n%!" id;
+                let%lwt body = Dream.body request in
+                let json = Yojson.Safe.from_string body in
+                let task =
+                  json
+                  |> Yojson.Safe.Util.member "task"
+                  |> Yojson.Safe.Util.to_string
+                in
+                match verify_auth_token request with
+                | Ok user_id -> (
+                    Printf.printf "[PUT /tasks/%s] User: %s\n%!" id user_id;
+                    let%lwt update_result = Tasks.update_task id task user_id in
+                    match update_result with
+                    | Ok () ->
+                        Printf.printf "[PUT /tasks/%s] Task updated\n%!" id;
+                        Dream.json {|{"message": "Task updated successfully"}|}
+                    | Error err ->
+                        let error_msg = Caqti_error.show err in
+                        Printf.printf "[PUT /tasks/%s] Error: %s\n%!" id
+                          error_msg;
+                        Dream.json ~status:`Internal_Server_Error
+                          (Printf.sprintf {|{"error": "%s"}|} error_msg))
+                | Error err ->
+                    Printf.printf "[PUT /tasks/%s] Auth error: %s\n%!" id err;
+                    Dream.json ~status:`Unauthorized
+                      (Printf.sprintf {|{"error": "%s"}|} err)));
        ]
