@@ -2,7 +2,7 @@
 
 A full-stack todo application built with OCaml (Dream) backend and ReasonReact frontend, featuring JWT authentication and PostgreSQL database.
 
-![OCaml CRUD](https://github.com/user-attachments/assets/81fd43af-36fb-4ebf-bfa3-4ffee1a24581)
+https://github.com/user-attachments/assets/81fd43af-36fb-4ebf-bfa3-4ffee1a24581
 
 ## Features
 
